@@ -277,11 +277,41 @@ function captureWarnings(fn) {
   }
 }
 
+const COLD_START_TEST_ENV_KEYS = [
+  "CODEX_HOME",
+  "CODEX_LINUX_APP_DIR",
+  "CODEX_REMOTE_CONTROL_CODEX_PATH",
+  "CODEX_REMOTE_CONTROL_CODEX_RELEASE",
+  "CODEX_REMOTE_CONTROL_DAEMON_AUTOSTART_DISABLED",
+  "CODEX_REMOTE_CONTROL_DAEMON_AUTOSTART_TIMEOUT_SECONDS",
+  "CODEX_REMOTE_CONTROL_FORCE_COLD_START_DAEMON",
+  "CODEX_REMOTE_CONTROL_RUNTIME_AUTO_INSTALL_DISABLED",
+];
+
+function coldStartTestEnv(env) {
+  const result = { ...process.env };
+  for (const key of COLD_START_TEST_ENV_KEYS) {
+    delete result[key];
+  }
+  return { ...result, ...env };
+}
+
 function runColdStartHook(env) {
-  return spawnSync("bash", [path.join(__dirname, "cold-start-hook.sh"), "--run-main"], {
-    env: { ...process.env, ...env },
-    encoding: "utf8",
-  });
+  const tempBin = fs.mkdtempSync(path.join(os.tmpdir(), "codex-remote-mobile-cold-start-bin-"));
+  try {
+    const systemctl = path.join(tempBin, "systemctl");
+    fs.writeFileSync(systemctl, "#!/usr/bin/env sh\nexit 3\n");
+    fs.chmodSync(systemctl, 0o755);
+
+    const childEnv = coldStartTestEnv(env);
+    childEnv.PATH = `${tempBin}${path.delimiter}${childEnv.PATH ?? ""}`;
+    return spawnSync("bash", [path.join(__dirname, "cold-start-hook.sh"), "--run-main"], {
+      env: childEnv,
+      encoding: "utf8",
+    });
+  } finally {
+    fs.rmSync(tempBin, { recursive: true, force: true });
+  }
 }
 
 function runStageHook(env) {
