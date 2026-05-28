@@ -3,6 +3,7 @@
 mod app;
 mod builder;
 mod cache_cleanup;
+mod changelog;
 mod cli;
 mod codex_cli;
 mod config;
@@ -16,6 +17,7 @@ mod state;
 #[cfg(test)]
 mod test_util;
 mod upstream;
+mod wrapper;
 
 use anyhow::Result;
 use clap::Parser;

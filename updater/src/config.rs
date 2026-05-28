@@ -18,6 +18,22 @@ pub struct RuntimeConfig {
     pub workspace_root: PathBuf,
     pub builder_bundle_root: PathBuf,
     pub app_executable_path: PathBuf,
+    /// Opt-in tracking of newer *wrapper* releases (this repo's own Linux
+    /// features/fixes), in addition to the upstream Codex DMG. Off by default
+    /// so existing installs keep their current DMG-only behavior.
+    #[serde(default)]
+    pub enable_wrapper_updates: bool,
+    /// Git remote (name or URL) used to detect wrapper updates. Empty means
+    /// "use the builder checkout's configured `origin`".
+    #[serde(default)]
+    pub wrapper_remote: String,
+    /// Branch to track for wrapper updates.
+    #[serde(default = "default_wrapper_branch")]
+    pub wrapper_branch: String,
+}
+
+fn default_wrapper_branch() -> String {
+    "main".to_string()
 }
 
 #[derive(Debug, Clone)]
@@ -91,6 +107,9 @@ impl RuntimeConfig {
             workspace_root: paths.cache_dir.clone(),
             builder_bundle_root,
             app_executable_path: PathBuf::from("/opt/codex-desktop/electron"),
+            enable_wrapper_updates: false,
+            wrapper_remote: String::new(),
+            wrapper_branch: default_wrapper_branch(),
         }
     }
 

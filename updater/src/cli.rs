@@ -19,6 +19,12 @@ pub enum Commands {
         #[arg(long, default_value_t = false)]
         if_stale: bool,
     },
+    /// Check whether a newer wrapper release (this repo's own Linux
+    /// features/fixes) is available, and record its changelog.
+    CheckWrapper {
+        #[arg(long, default_value_t = false)]
+        json: bool,
+    },
     CliPreflight {
         #[arg(long)]
         cli_path: Option<PathBuf>,
