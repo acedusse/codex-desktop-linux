@@ -115,6 +115,8 @@ const legacyBrowserClientChromeProfileSkip = {
 };
 
 const linuxExtensionAwareUserDataFallback = `  const linuxChromeUserDataDirectory = path.join(os.homedir(), ".config", "google-chrome");
+  const linuxChromeBetaUserDataDirectory = path.join(os.homedir(), ".config", "google-chrome-beta");
+  const linuxChromeUnstableUserDataDirectory = path.join(os.homedir(), ".config", "google-chrome-unstable");
   const linuxChromiumUserDataDirectory = path.join(os.homedir(), ".config", "chromium");
   const linuxBraveUserDataDirectory = path.join(
     os.homedir(),
@@ -125,6 +127,8 @@ const linuxExtensionAwareUserDataFallback = `  const linuxChromeUserDataDirector
   const linuxUserDataCandidates = [
     linuxBraveUserDataDirectory,
     linuxChromeUserDataDirectory,
+    linuxChromeBetaUserDataDirectory,
+    linuxChromeUnstableUserDataDirectory,
     linuxChromiumUserDataDirectory,
   ].filter((candidate) => fs.existsSync(candidate));
   const linuxCandidateWithInstalledExtension = linuxUserDataCandidates.find(
@@ -154,6 +158,8 @@ const linuxExtensionAwareUserDataFallback = `  const linuxChromeUserDataDirector
   return linuxChromeUserDataDirectory;`;
 
 const linuxDefaultBrowserUserDataFallback = `  const linuxChromeUserDataDirectory = path.join(os.homedir(), ".config", "google-chrome");
+  const linuxChromeBetaUserDataDirectory = path.join(os.homedir(), ".config", "google-chrome-beta");
+  const linuxChromeUnstableUserDataDirectory = path.join(os.homedir(), ".config", "google-chrome-unstable");
   const linuxChromiumUserDataDirectory = path.join(os.homedir(), ".config", "chromium");
   const linuxBraveUserDataDirectory = path.join(
     os.homedir(),
@@ -169,6 +175,18 @@ const linuxDefaultBrowserUserDataFallback = `  const linuxChromeUserDataDirector
     return linuxBraveUserDataDirectory;
   }
   if (
+    defaultBrowser === "google-chrome-beta.desktop" &&
+    fs.existsSync(linuxChromeBetaUserDataDirectory)
+  ) {
+    return linuxChromeBetaUserDataDirectory;
+  }
+  if (
+    defaultBrowser === "google-chrome-unstable.desktop" &&
+    fs.existsSync(linuxChromeUnstableUserDataDirectory)
+  ) {
+    return linuxChromeUnstableUserDataDirectory;
+  }
+  if (
     ["chromium.desktop", "chromium-browser.desktop"].includes(defaultBrowser) &&
     fs.existsSync(linuxChromiumUserDataDirectory)
   ) {
@@ -177,6 +195,8 @@ const linuxDefaultBrowserUserDataFallback = `  const linuxChromeUserDataDirector
 
   if (fs.existsSync(linuxBraveUserDataDirectory)) return linuxBraveUserDataDirectory;
   if (fs.existsSync(linuxChromeUserDataDirectory)) return linuxChromeUserDataDirectory;
+  if (fs.existsSync(linuxChromeBetaUserDataDirectory)) return linuxChromeBetaUserDataDirectory;
+  if (fs.existsSync(linuxChromeUnstableUserDataDirectory)) return linuxChromeUnstableUserDataDirectory;
   if (fs.existsSync(linuxChromiumUserDataDirectory)) return linuxChromiumUserDataDirectory;
 
   return linuxChromeUserDataDirectory;`;
@@ -239,7 +259,9 @@ function isKnownLinuxBrowserCommand(command) {
     "chromium",
     "chromium-browser",
     "google-chrome",
+    "google-chrome-beta",
     "google-chrome-stable",
+    "google-chrome-unstable",
   ].includes(path.basename(command));
 }
 
@@ -250,6 +272,12 @@ function defaultLinuxUserDataDirectoryForCommand(command) {
   }
   if (["chromium", "chromium-browser"].includes(commandName)) {
     return path.join(os.homedir(), ".config", "chromium");
+  }
+  if (commandName === "google-chrome-beta") {
+    return path.join(os.homedir(), ".config", "google-chrome-beta");
+  }
+  if (commandName === "google-chrome-unstable") {
+    return path.join(os.homedir(), ".config", "google-chrome-unstable");
   }
   return path.join(os.homedir(), ".config", "google-chrome");
 }
@@ -268,6 +296,20 @@ const linuxNativeHostManifestFallback = `  if (process.platform === "linux") {
         os.homedir(),
         ".config",
         "google-chrome",
+        "NativeMessagingHosts",
+        \`\${expectedHostName}.json\`,
+      ),
+      path.join(
+        os.homedir(),
+        ".config",
+        "google-chrome-beta",
+        "NativeMessagingHosts",
+        \`\${expectedHostName}.json\`,
+      ),
+      path.join(
+        os.homedir(),
+        ".config",
+        "google-chrome-unstable",
         "NativeMessagingHosts",
         \`\${expectedHostName}.json\`,
       ),
@@ -305,7 +347,7 @@ patchFileFirstMatch(path.join(scriptsDir, "installManifest.mjs"), {
     'linux:[".config/google-chrome/NativeMessagingHosts",".config/BraveSoftware/Brave-Browser/NativeMessagingHosts"]',
   ],
   newText:
-    'linux:[".config/google-chrome/NativeMessagingHosts",".config/BraveSoftware/Brave-Browser/NativeMessagingHosts",".config/chromium/NativeMessagingHosts"]',
+    'linux:[".config/google-chrome/NativeMessagingHosts",".config/google-chrome-beta/NativeMessagingHosts",".config/google-chrome-unstable/NativeMessagingHosts",".config/BraveSoftware/Brave-Browser/NativeMessagingHosts",".config/chromium/NativeMessagingHosts"]',
 });
 
 patchFile(path.join(scriptsDir, "check-native-host-manifest.js"), [
@@ -343,7 +385,7 @@ ${linuxNativeHostManifestFallback}
   throw new Error(
     \`Unsupported platform for native host manifest check: \${process.platform}. This script supports macOS, Linux, and Windows.\`,
   );`,
-    alreadyText: '"chromium",\n        "NativeMessagingHosts"',
+    alreadyText: '"google-chrome-beta",\n        "NativeMessagingHosts"',
   },
   {
     label: "Linux browser native host manifest fallback",
@@ -362,7 +404,7 @@ ${linuxNativeHostManifestFallback}
     };
   }`,
     newText: linuxNativeHostManifestFallback,
-    alreadyText: '"chromium",\n        "NativeMessagingHosts"',
+    alreadyText: '"google-chrome-beta",\n        "NativeMessagingHosts"',
   },
 ]);
 
@@ -372,35 +414,35 @@ patchFileFirstMatch(path.join(scriptsDir, "browser-client.mjs"), {
   oldTexts: [
     {
       oldText: String.raw`var Tc=GF(VF(),WF()==="win32"?"AppData\\Local\\Google\\Chrome\\User Data":"Library/Application Support/Google/Chrome");`,
-      newText: String.raw`var Tc=GF(VF(),WF()==="win32"?"AppData\\Local\\Google\\Chrome\\User Data":"Library/Application Support/Google/Chrome"),codexLinuxChromeUserDataDirectories=()=>WF()==="linux"?[GF(VF(),".config","BraveSoftware","Brave-Browser"),GF(VF(),".config","google-chrome"),GF(VF(),".config","chromium")]:[Tc];`,
+      newText: String.raw`var Tc=GF(VF(),WF()==="win32"?"AppData\\Local\\Google\\Chrome\\User Data":"Library/Application Support/Google/Chrome"),codexLinuxChromeUserDataDirectories=()=>WF()==="linux"?[GF(VF(),".config","BraveSoftware","Brave-Browser"),GF(VF(),".config","google-chrome"),GF(VF(),".config","google-chrome-beta"),GF(VF(),".config","google-chrome-unstable"),GF(VF(),".config","chromium")]:[Tc];`,
     },
     {
       oldText: String.raw`var Ic=eO(tO(),rO()==="win32"?"AppData\\Local\\Google\\Chrome\\User Data":"Library/Application Support/Google/Chrome");`,
-      newText: String.raw`var Ic=eO(tO(),rO()==="win32"?"AppData\\Local\\Google\\Chrome\\User Data":"Library/Application Support/Google/Chrome"),codexLinuxChromeUserDataDirectories=()=>rO()==="linux"?[eO(tO(),".config","BraveSoftware","Brave-Browser"),eO(tO(),".config","google-chrome"),eO(tO(),".config","chromium")]:[Ic];`,
+      newText: String.raw`var Ic=eO(tO(),rO()==="win32"?"AppData\\Local\\Google\\Chrome\\User Data":"Library/Application Support/Google/Chrome"),codexLinuxChromeUserDataDirectories=()=>rO()==="linux"?[eO(tO(),".config","BraveSoftware","Brave-Browser"),eO(tO(),".config","google-chrome"),eO(tO(),".config","google-chrome-beta"),eO(tO(),".config","google-chrome-unstable"),eO(tO(),".config","chromium")]:[Ic];`,
     },
     {
       oldText: String.raw`var hl=Y5(Z5(),X5()==="win32"?"AppData\\Local\\Google\\Chrome\\User Data":"Library/Application Support/Google/Chrome");`,
-      newText: String.raw`var hl=Y5(Z5(),X5()==="win32"?"AppData\\Local\\Google\\Chrome\\User Data":"Library/Application Support/Google/Chrome"),codexLinuxChromeUserDataDirectories=()=>X5()==="linux"?[Y5(Z5(),".config","BraveSoftware","Brave-Browser"),Y5(Z5(),".config","google-chrome"),Y5(Z5(),".config","chromium")]:[hl];`,
+      newText: String.raw`var hl=Y5(Z5(),X5()==="win32"?"AppData\\Local\\Google\\Chrome\\User Data":"Library/Application Support/Google/Chrome"),codexLinuxChromeUserDataDirectories=()=>X5()==="linux"?[Y5(Z5(),".config","BraveSoftware","Brave-Browser"),Y5(Z5(),".config","google-chrome"),Y5(Z5(),".config","google-chrome-beta"),Y5(Z5(),".config","google-chrome-unstable"),Y5(Z5(),".config","chromium")]:[hl];`,
     },
     {
       oldText: String.raw`var kl=M9(F9(),L9()==="win32"?"AppData\\Local\\Google\\Chrome\\User Data":"Library/Application Support/Google/Chrome");`,
-      newText: String.raw`var kl=M9(F9(),L9()==="win32"?"AppData\\Local\\Google\\Chrome\\User Data":"Library/Application Support/Google/Chrome"),codexLinuxChromeUserDataDirectories=()=>L9()==="linux"?[M9(F9(),".config","BraveSoftware","Brave-Browser"),M9(F9(),".config","google-chrome"),M9(F9(),".config","chromium")]:[kl];`,
+      newText: String.raw`var kl=M9(F9(),L9()==="win32"?"AppData\\Local\\Google\\Chrome\\User Data":"Library/Application Support/Google/Chrome"),codexLinuxChromeUserDataDirectories=()=>L9()==="linux"?[M9(F9(),".config","BraveSoftware","Brave-Browser"),M9(F9(),".config","google-chrome"),M9(F9(),".config","google-chrome-beta"),M9(F9(),".config","google-chrome-unstable"),M9(F9(),".config","chromium")]:[kl];`,
     },
     {
       oldText: String.raw`var $c=Nj(Oj(),Mj()==="win32"?"AppData\\Local\\Google\\Chrome\\User Data":"Library/Application Support/Google/Chrome");`,
-      newText: String.raw`var $c=Nj(Oj(),Mj()==="win32"?"AppData\\Local\\Google\\Chrome\\User Data":"Library/Application Support/Google/Chrome"),codexLinuxChromeUserDataDirectories=()=>Mj()==="linux"?[Nj(Oj(),".config","BraveSoftware","Brave-Browser"),Nj(Oj(),".config","google-chrome"),Nj(Oj(),".config","chromium")]:[$c];`,
+      newText: String.raw`var $c=Nj(Oj(),Mj()==="win32"?"AppData\\Local\\Google\\Chrome\\User Data":"Library/Application Support/Google/Chrome"),codexLinuxChromeUserDataDirectories=()=>Mj()==="linux"?[Nj(Oj(),".config","BraveSoftware","Brave-Browser"),Nj(Oj(),".config","google-chrome"),Nj(Oj(),".config","google-chrome-beta"),Nj(Oj(),".config","google-chrome-unstable"),Nj(Oj(),".config","chromium")]:[$c];`,
     },
     {
       oldText: String.raw`var cd=d$(p$(),f$()==="win32"?"AppData\\Local\\Google\\Chrome\\User Data":"Library/Application Support/Google/Chrome");`,
-      newText: String.raw`var cd=d$(p$(),f$()==="win32"?"AppData\\Local\\Google\\Chrome\\User Data":"Library/Application Support/Google/Chrome"),codexLinuxChromeUserDataDirectories=()=>f$()==="linux"?[d$(p$(),".config","BraveSoftware","Brave-Browser"),d$(p$(),".config","google-chrome"),d$(p$(),".config","chromium")]:[cd];`,
+      newText: String.raw`var cd=d$(p$(),f$()==="win32"?"AppData\\Local\\Google\\Chrome\\User Data":"Library/Application Support/Google/Chrome"),codexLinuxChromeUserDataDirectories=()=>f$()==="linux"?[d$(p$(),".config","BraveSoftware","Brave-Browser"),d$(p$(),".config","google-chrome"),d$(p$(),".config","google-chrome-beta"),d$(p$(),".config","google-chrome-unstable"),d$(p$(),".config","chromium")]:[cd];`,
     },
     {
       oldText: String.raw`var ld=Xq(Qq(),e$()==="win32"?"AppData\\Local\\Google\\Chrome\\User Data":"Library/Application Support/Google/Chrome");`,
-      newText: String.raw`var ld=Xq(Qq(),e$()==="win32"?"AppData\\Local\\Google\\Chrome\\User Data":"Library/Application Support/Google/Chrome"),codexLinuxChromeUserDataDirectories=()=>e$()==="linux"?[Xq(Qq(),".config","BraveSoftware","Brave-Browser"),Xq(Qq(),".config","google-chrome"),Xq(Qq(),".config","chromium")]:[ld];`,
+      newText: String.raw`var ld=Xq(Qq(),e$()==="win32"?"AppData\\Local\\Google\\Chrome\\User Data":"Library/Application Support/Google/Chrome"),codexLinuxChromeUserDataDirectories=()=>e$()==="linux"?[Xq(Qq(),".config","BraveSoftware","Brave-Browser"),Xq(Qq(),".config","google-chrome"),Xq(Qq(),".config","google-chrome-beta"),Xq(Qq(),".config","google-chrome-unstable"),Xq(Qq(),".config","chromium")]:[ld];`,
     },
     {
       oldText: String.raw`var md=w$(x$(),S$()==="win32"?"AppData\\Local\\Google\\Chrome\\User Data":"Library/Application Support/Google/Chrome");`,
-      newText: String.raw`var md=w$(x$(),S$()==="win32"?"AppData\\Local\\Google\\Chrome\\User Data":"Library/Application Support/Google/Chrome"),codexLinuxChromeUserDataDirectories=()=>S$()==="linux"?[w$(x$(),".config","BraveSoftware","Brave-Browser"),w$(x$(),".config","google-chrome"),w$(x$(),".config","chromium")]:[md];`,
+      newText: String.raw`var md=w$(x$(),S$()==="win32"?"AppData\\Local\\Google\\Chrome\\User Data":"Library/Application Support/Google/Chrome"),codexLinuxChromeUserDataDirectories=()=>S$()==="linux"?[w$(x$(),".config","BraveSoftware","Brave-Browser"),w$(x$(),".config","google-chrome"),w$(x$(),".config","google-chrome-beta"),w$(x$(),".config","google-chrome-unstable"),w$(x$(),".config","chromium")]:[md];`,
     },
   ],
   alreadyText: "codexLinuxChromeUserDataDirectories",
@@ -758,6 +800,20 @@ patchFile(path.join(scriptsDir, "installed-browsers.js"), [
     windowsExecutable: "chrome.exe",
   },
   {
+    name: "Google Chrome Beta",
+    bundleIds: ["com.google.Chrome.beta"],
+    appNames: ["Google Chrome Beta.app"],
+    commands: ["google-chrome-beta"],
+    windowsExecutable: "chrome.exe",
+  },
+  {
+    name: "Google Chrome Unstable",
+    bundleIds: ["com.google.Chrome.canary"],
+    appNames: ["Google Chrome Canary.app"],
+    commands: ["google-chrome-unstable"],
+    windowsExecutable: "chrome.exe",
+  },
+  {
     name: "Brave Browser",
     bundleIds: ["com.brave.Browser"],
     appNames: ["Brave Browser.app"],
@@ -784,7 +840,7 @@ patchFile(path.join(scriptsDir, "chrome-is-running.js"), [
 };`,
     newText: `const CHROME_PROCESS_NAMES_BY_PLATFORM = {
   darwin: new Set(["Google Chrome", "Google Chrome Helper"]),
-  linux: new Set(["chrome", "google-chrome", "brave", "brave-browser", "chromium", "chromium-browser"]),
+  linux: new Set(["chrome", "google-chrome", "google-chrome-beta", "google-chrome-unstable", "brave", "brave-browser", "chromium", "chromium-browser"]),
   win32: new Set(["chrome.exe"]),
 };`,
   },
@@ -905,6 +961,10 @@ patchFile(path.join(scriptsDir, "open-chrome-window.js"), [
     )
   ) {
     linuxCommand = commandPath("brave-browser") || commandPath("brave") || "brave-browser";
+  } else if (linuxUserDataDirectory.includes(path.join(".config", "google-chrome-beta"))) {
+    linuxCommand = commandPath("google-chrome-beta") || "google-chrome-beta";
+  } else if (linuxUserDataDirectory.includes(path.join(".config", "google-chrome-unstable"))) {
+    linuxCommand = commandPath("google-chrome-unstable") || "google-chrome-unstable";
   } else if (linuxUserDataDirectory.includes(path.join(".config", "chromium"))) {
     linuxCommand = commandPath("chromium") || commandPath("chromium-browser") || "chromium";
   }
