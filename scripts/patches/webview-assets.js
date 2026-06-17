@@ -709,6 +709,19 @@ function applyLinuxAppServerBackfillWaitPatch(currentSource) {
     if (helperAnchor != null) {
       patchedSource = patchedSource.replace(helperAnchor, `${helperSource}${helperAnchor}`);
       changed = true;
+    } else if (shouldPatchTimeout) {
+      const timeoutMatch = patchedSource.match(timeoutNeedle);
+      const classIndex = timeoutMatch?.index == null
+        ? -1
+        : patchedSource.lastIndexOf("=class{", timeoutMatch.index);
+      if (classIndex !== -1) {
+        const statementStart = patchedSource.lastIndexOf(";", classIndex) + 1;
+        patchedSource =
+          patchedSource.slice(0, statementStart) +
+          helperSource +
+          patchedSource.slice(statementStart);
+        changed = true;
+      }
     }
   }
 

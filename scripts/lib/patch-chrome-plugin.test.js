@@ -20,6 +20,13 @@ function readScript(pluginDir, name) {
   return fs.readFileSync(path.join(pluginDir, "scripts", name), "utf8");
 }
 
+function currentBrowserClientFixture() {
+  return (
+    String.raw`import L7,{platform as XI}from"node:os";import{readFile as P7}from"fs/promises";import{resolve as D7}from"path";import{resolve as S7}from"path";import{homedir as v7,platform as E7}from"os";var Cd=S7(v7(),E7()==="win32"?"AppData\\Local\\Google\\Chrome\\User Data":"Library/Application Support/Google/Chrome");import{ClassicLevel as C7}from"./node_modules/classic-level.mjs";import{resolve as bg}from"path";import{tmpdir as T7}from"os";import{cp as A7,mkdtemp as I7,rm as HI}from"fs/promises";import{existsSync as k7}from"fs";var VI=async(e,t)=>{let r=bg(Cd,e,"Local Extension Settings",t);if(!k7(r))return null;let n=await I7(bg(R7(),"codex"));await A7(r,n,{recursive:!0}),await HI(bg(n,"LOCK"));let o=new C7(n,{createIfMissing:!1,keyEncoding:"utf8",valueEncoding:"utf8"});try{await o.open();let i=await o.get("extensionInstanceId");if(!i)return null;let s=JSON.parse(i);return typeof s!="string"?null:s}finally{await o.close(),await HI(n,{force:!0,recursive:!0})}},R7=()=>T7();var GI=async e=>e,N7=async(e,t)=>(await O7(e)).find(o=>o.instanceId===t)||null,O7=async e=>{let t=await M7();return await Promise.all(t.map(async r=>({...r,instanceId:await VI(r.id,e).catch(n=>(le(n),null))})))},M7=async()=>{let e=D7(Cd,"Local State"),t=JSON.parse(await P7(e,"utf8"));return t.profile.profiles_order.map((r,n)=>{let o=t.profile.info_cache[r];return o?{id:r,name:o.name,isLastUsed:t.profile.last_used===r,orderingIndex:n,avatarUrl:o.avatar_icon}:null}).filter(r=>!!r)};var U7=5e3,_g=__(L7.platform()),j7=async(e,{codexSessionId:t})=>{let r=tl(p_),n=e.filter(i=>i.info.type==="iab"),o=q7(n,t,r);return await Promise.all(n.filter(i=>!o.includes(i)).map(async({api:i})=>i.close())),[...e.filter(i=>i.info.type!=="iab"),...o]},q7=(e,t,r)=>t==null?[]:e.filter(n=>n.info.metadata?.codexSessionId===t&&(r==null||n.info.metadata.codexAppBuildFlavor===r)),ek=async()=>{};function tI({browserId:e,clientInfo:t,requestedBrowserId:r}){return ig(r)?og(t.type)===r:e===r}function ld(){}` +
+    String.raw`async function mwe({globals:e}){let r=new Id,n=new Map(),l={browser_id:"extension"};if(ig(l.browser_id)){let _=li(l.browser_id);KI(_)}let p=await r.get(l.browser_id),f=n.get(p.api);return f}`
+  );
+}
+
 test("patches Linux Chrome Beta and Unstable support into bundled Chrome plugin scripts", () => {
   const pluginDir = fs.mkdtempSync(path.join(os.tmpdir(), "codex-chrome-plugin-"));
   try {
@@ -55,8 +62,7 @@ function getNativeHostManifestDetails(expectedHostName) {
     writeScript(
       pluginDir,
       "browser-client.mjs",
-      String.raw`var Tc=GF(VF(),WF()==="win32"?"AppData\\Local\\Google\\Chrome\\User Data":"Library/Application Support/Google/Chrome");` +
-        "\n",
+      currentBrowserClientFixture(),
     );
     writeScript(
       pluginDir,
@@ -136,6 +142,7 @@ function openChromeWindow(chromeArgs) {
       encoding: "utf8",
     });
     assert.equal(result.status, 0, result.stderr);
+    assert.doesNotMatch(result.stderr, /browser-client\.mjs missing patch target/);
 
     const installManifest = readScript(pluginDir, "installManifest.mjs");
     assert.match(installManifest, /google-chrome-beta\/NativeMessagingHosts/);
@@ -148,6 +155,12 @@ function openChromeWindow(chromeArgs) {
     const browserClient = readScript(pluginDir, "browser-client.mjs");
     assert.match(browserClient, /"google-chrome-beta"/);
     assert.match(browserClient, /"google-chrome-unstable"/);
+    assert.match(browserClient, /async\(e,t,r=Cd\)/);
+    assert.match(browserClient, /r\.length===1\?r\[0\]:null/);
+    assert.match(browserClient, /codexLinuxRankBrowserBackends/);
+    assert.match(browserClient, /codexLinuxCloseDiscardedBrowserBackends/);
+    assert.match(browserClient, /codexLinuxRejectAmbiguousBrowserAlias/);
+    assert.match(browserClient, /await r\.getBrowsers\(\)/);
 
     const installedBrowsers = readScript(pluginDir, "installed-browsers.js");
     assert.match(installedBrowsers, /name: "Google Chrome Beta"/);
